@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Estadístico - Vista Separada por Género</title>
+    <!-- Bootstrap para diseño responsivo moderno -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js para interactividad instantánea -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f1f5f9; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .sidebar { background-color: #0f172a; min-height: 100vh; color: white; padding-top: 20px; position: fixed; width: 22%; }
+        .sidebar .nav-link { color: #94a3b8; margin-bottom: 8px; border-radius: 8px; padding: 12px; transition: all 0.2s; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #2563eb; color: white; font-weight: 600; }
+        .main-card { background: white; border-radius: 14px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 24px; }
+        .theme-header { color: #0f172a; border-bottom: 4px solid #2563eb; padding-bottom: 12px; margin-bottom: 20px; font-weight: 700; text-transform: uppercase; }
+        .chart-container { position: relative; height: 280px; width: 100%; }
+        .btn-topic { border-radius: 20px; font-weight: 500; font-size: 0.85rem; margin-right: 6px; margin-bottom: 10px; transition: 0.2s; }
+        .btn-gender { border-radius: 10px; font-weight: 600; padding: 10px 24px; transition: 0.2s; }
+        main { margin-left: 24%; width: 74%; }
+        @media (max-width: 992px) { .sidebar { position: relative; min-height: auto; width: 100%; } main { margin-left: 0; width: 100%; } }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- MENÚ LATERAL: SELECCIÓN DE TEMAS -->
+        <nav class="sidebar shadow-lg">
+            <div class="px-3">
+                <div class="text-center py-3 mb-4 border-bottom border-secondary">
+                    <h5 class="text-white mb-0 font-monospace fw-bold">📊 PANEL DE CONTROL</h5>
+                    <small class="text-muted">Muestras Independientes</small>
+                </div>
+                <ul class="nav flex-column" id="menuNavegacion">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="cambiarModulo('celular', this)">📱 1. Uso del Celular</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cambiarModulo('mundial', this)">⚽ 2. Pasión Mundialista</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cambiarModulo('catorceavo', this)">💵 3. Finanzas y Catorceavo</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cambiarModulo('educacion', this)">🎓 4. Realidad Educativa</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- ÁREA CENTRAL -->
+        <main class="py-4 px-3 px-md-4">
+            
+            <h2 id="tituloModulo" class="theme-header">Tema 1: Uso e Impacto del Celular</h2>
+            
+            <!-- CONTENEDOR DE BOTONES (4 TÓPICOS) -->
+            <div class="d-flex flex-wrap mb-3" id="contenedorBotones"></div>
+
+            <!-- FILTRO INTERACTIVO SEPARADO POR GÉNERO -->
+            <div class="main-card bg-light border text-center py-3 mb-4">
+                <span class="d-block text-muted small fw-bold text-uppercase mb-2">👇 PULSE AQUÍ PARA SELECCIONAR EL GÉNERO A VISUALIZAR</span>
+                <div class="d-flex justify-content-center gap-3">
+                    <button id="btnFiltroHombres" class="btn btn-gender btn-primary" onclick="cambiarGeneroFiltro('hombres')">
+                        ♂️ Ver Hombres
+                    </button>
+                    <button id="btnFiltroMujeres" class="btn btn-gender btn-outline-danger" onclick="cambiarGeneroFiltro('mujeres')">
+                        ♀️ Ver Mujeres
+                    </button>
+                </div>
+            </div>
+
+            <!-- CARD PRINCIPAL: GRÁFICAS -->
+            <div class="main-card">
+                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                    <h4 id="nombreTopicoActual" class="h5 mb-0 text-dark fw-bold">Cargando...</h4>
+                    <span id="badgeGeneroActivo" class="badge bg-primary rounded-pill px-3 fs-6">Viendo: Hombres</span>
+                </div>
+
+                <div class="row g-4 mt-1">
+                    <div class="col-xl-6">
+                        <div class="text-center mb-2 fw-semibold text-secondary small">📊 Gráfica de Barras Exclusiva</div>
+                        <div class="chart-container"><canvas id="canvasBarras"></canvas></div>
+                    </div>
+                    <div class="col-xl-6">
+                        <div class="text-center mb-2 fw-semibold text-secondary small">🍩 Gráfica de Pastel / Dona Exclusiva</div>
+                        <div class="chart-container"><canvas id="canvasPastel"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD SECUNDARIA: TABLA DINÁMICA -->
+            <div class="main-card">
+                <div class="fw-bold text-secondary mb-3">
+                    📋 Muestra de Resultados en Tabla (%)
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered m-0 text-center">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-start">Opción / Respuesta Seleccionada</th>
+                                <th id="columnaTablaGenero" style="width: 30%;">Porcentaje (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cuerpoTablaResultados"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    // =========================================================================
+    // BASE DE DATOS ESTRUCTURADA: 4 TEMAS X 4 TÓPICOS SEGMENTADOS
+    // =========================================================================
+    const datasetEstudio = {
+        celular: {
+            titulo: "Tema 1: Uso e Impacto del Celular",
+            topicos: [
+                {
+                    nombre: "Autopercepción de Dependencia Móvil",
+                    etiquetas: ["Tal vez", "No", "Sí"],
+                    hombres: [41.8, 29.6, 28.6],
+                    mujeres: [44.6, 26.4, 23.0]
+                },
+                {
+                    nombre: "Frecuencia de Revisión Fantasma",
+                    etiquetas: ["Varias veces al día", "Constantemente", "Algunas veces al día"],
+                    hombres: [39.8, 28.6, 28.6],
+                    mujeres: [44.6, 25.7, 25.0]
+                },
+                {
+                    nombre: "Reacción al olvidar el celular en casa",
+                    etiquetas: ["Depende la distancia", "Regresa por él", "Continúa su día"],
+                    hombres: [57.1, 26.5, 14.3],
+                    mujeres: [48.0, 25.7, 22.3]
+                },
+                {
+                    nombre: "Pérdidas atribuidas al uso del celular",
+                    etiquetas: ["Convivencia social", "Tiempo valioso", "Atención", "Horas de Sueño"],
+                    hombres: [32.7, 27.6, 23.5, 9.2],
+                    mujeres: [33.8, 26.4, 14.9, 18.9]
+                }
+            ]
+        },
+        mundial: {
+            titulo: "Tema 2: Pasión por el Mundial 2026",
+            topicos: [
+                {
+                    nombre: "Sentimiento al iniciar un Mundial",
+                    etiquetas: ["Emoción y entusiasmo", "Interés moderado", "Es un evento más", "Indiferente"],
+                    hombres: [44.9, 29.6, 18.4, 7.1],
+                    mujeres: [25.7, 35.1, 27.0, 12.2]
+                },
+                {
+                    nombre: "Sacrificios para ver los Partidos",
+                    etiquetas: ["Ver si coincide horario", "No haría nada especial", "Reorganizar agenda"],
+                    hombres: [48.0, 19.4, 25.5],
+                    mujeres: [49.3, 26.4, 18.9]
+                },
+                {
+                    nombre: "Mejor lugar para vivir la Copa Mundial",
+                    etiquetas: ["Reuniones con amigos", "En casa", "Da igual el lugar", "Restaurantes / Bares"],
+                    hombres: [42.9, 35.7, 14.3, 7.1],
+                    mujeres: [21.6, 61.5, 13.5, 3.4]
+                },
+                {
+                    nombre: "Selección favorita para coronarse Campeón",
+                    etiquetas: ["Argentina", "Brasil", "Alemania", "España"],
+                    hombres: [38.5, 16.5, 12.4, 10.1],
+                    mujeres: [31.2, 19.8, 8.5, 14.2]
+                }
+            ]
+        },
+        catorceavo: {
+            titulo: "Tema 3: Destino del Catorceavo Salario",
+            topicos: [
+                {
+                    nombre: "Destino principal de los Fondos",
+                    etiquetas: ["Pago de deudas", "Gastos del hogar", "Ahorro / Inversión", "Compras / Gustos"],
+                    hombres: [45.2, 22.1, 18.4, 14.3],
+                    mujeres: [49.1, 26.5, 11.2, 13.2]
+                },
+                {
+                    nombre: "Nivel de Compromiso Financiero Previo",
+                    etiquetas: ["Ya está totalmente gastado", "Comprometido una parte", "Libre disponible"],
+                    hombres: [21.4, 48.5, 30.1],
+                    mujeres: [28.4, 50.2, 21.4]
+                },
+                {
+                    nombre: "Estado emocional al recibir el beneficio",
+                    etiquetas: ["Alivio financiero", "Alegría / Motivación", "Estrés por deudas"],
+                    hombres: [52.1, 38.4, 9.5],
+                    mujeres: [61.2, 28.3, 10.5]
+                },
+                {
+                    nombre: "Velocidad de disolución del dinero",
+                    etiquetas: ["En los primeros 3 días", "En una semana", "Dura más de un mes"],
+                    hombres: [35.2, 42.1, 22.7],
+                    mujeres: [41.9, 39.0, 19.1]
+                }
+            ]
+        },
+        educacion: {
+            titulo: "Tema 4: Realidad Educativa y Rendimiento",
+            topicos: [
+                {
+                    nombre: "Mayor factor de distracción en clases",
+                    etiquetas: ["Redes Sociales", "Problemas personales", "Videojuegos", "Falta de interés"],
+                    hombres: [68.4, 14.2, 12.1, 5.3],
+                    mujeres: [78.2, 16.5, 1.1, 4.2]
+                },
+                {
+                    nombre: "Principal preocupación del estudiante",
+                    etiquetas: ["Desempleo al graduarse", "Costos económicos", "Aprobar asignaturas"],
+                    hombres: [55.3, 26.4, 18.3],
+                    mujeres: [51.2, 33.1, 15.7]
+                },
+                {
+                    nombre: "Percepción de preparación de los egresados",
+                    etiquetas: ["Poco preparado", "Moderadamente preparado", "Altamente competente"],
+                    hombres: [44.1, 46.2, 9.7],
+                    mujeres: [41.5, 50.3, 8.2]
+                },
+                {
+                    nombre: "Calificación cualitativa de ser estudiante hoy",
+                    etiquetas: ["Un reto difícil", "Una oportunidad valiosa", "Frustrante por la situación"],
+                    hombres: [51.0, 35.2, 13.8],
+                    mujeres: [56.4, 31.0, 12.6]
+                }
+            ]
+        }
+    };
+
+    let chartBarras = null;
+    let chartPastel = null;
+    let moduloActual = 'celular';
+    let topicoActualIndex = 0;
+    let generoSeleccionado = 'hombres'; // Estado por defecto
+
+    window.onload = function() {
+        inicializarEstructurasGraficas();
+        generarBotonesTopicos('celular');
+    };
+
+    function inicializarEstructurasGraficas() {
+        const ctxBarras = document.getElementById('canvasBarras').getContext('2d');
+        const ctxPastel = document.getElementById('canvasPastel').getContext('2d');
+
+        const opcionesEstilo = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: { enabled: true, backgroundColor: '#0f172a', padding: 12 }
+            }
+        };
+
+        chartBarras = new Chart(ctxBarras, {
+            type: 'bar',
+            data: { labels: [], datasets: [] },
+            options: opcionesEstilo
+        });
+
+        chartPastel = new Chart(ctxPastel, {
+            type: 'pie',
+            data: { labels: [], datasets: [] },
+            options: opcionesEstilo
+        });
+    }
+
+    function cambiarModulo(idModulo, elementoClick) {
+        moduloActual = idModulo;
+        topicoActualIndex = 0; // Reiniciar al primer tópico
+        document.querySelectorAll('#menuNavegacion .nav-link').forEach(link => link.classList.remove('active'));
+        elementoClick.classList.add('active');
+        
+        document.getElementById('tituloModulo').innerText = datasetEstudio[idModulo].titulo;
+        generarBotonesTopicos(idModulo);
+    }
+
+    function generarBotonesTopicos(idModulo) {
+        const contenedor = document.getElementById('contenedorBotones');
+        contenedor.innerHTML = ''; 
+
+        datasetEstudio[idModulo].topicos.forEach((topico, indice) => {
+            const boton = document.createElement('button');
+            boton.className = `btn btn-topic ${indice === topicoActualIndex ? 'btn-primary' : 'btn-outline-primary'}`;
+            boton.innerHTML = `📍 Tópico ${indice + 1}: ${topico.nombre}`;
+            
+            boton.onclick = function() {
+                topicoActualIndex = indice;
+                document.querySelectorAll('#contenedorBotones .btn').forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-outline-primary');
+                });
+                boton.classList.remove('btn-outline-primary');
+                boton.classList.add('btn-primary');
+                
+                renderizarTodo();
+            };
+            contenedor.appendChild(boton);
+        });
+
+        renderizarTodo();
+    }
+
+    // Cambiar estado mediante la botonera interactiva de Géneros
+    function cambiarGeneroFiltro(genero) {
+        generoSeleccionado = genero;
+        const btnH = document.getElementById('btnFiltroHombres');
+        const btnM = document.getElementById('btnFiltroMujeres');
+
+        if (genero === 'hombres') {
+            btnH.className = "btn btn-gender btn-primary";
+            btnM.className = "btn btn-gender btn-outline-danger";
+        } else {
+            btnH.className = "btn btn-gender btn-outline-primary";
+            btnM.className = "btn btn-gender btn-danger";
+        }
+
+        renderizarTodo();
+    }
+
+    // FUNCIÓN CORE: Renderiza barras, pastel y tabla dependiendo de las pulsaciones actuales
+    function renderizarTodo() {
+        const topico = datasetEstudio[moduloActual].topicos[topicoActualIndex];
+        document.getElementById('nombreTopicoActual').innerText = topico.nombre;
+
+        // Definición de colores y asignación de arreglos según el género activo
+        let datosFiltrados = [];
+        let colorPrincipal = '';
+        let gamaColoresPastel = [];
+        const badge = document.getElementById('badgeGeneroActivo');
+        const thGenero = document.getElementById('columnaTablaGenero');
+
+        if (generoSeleccionado === 'hombres') {
+            datosFiltrados = topico.hombres;
+            colorPrincipal = '#2563eb'; // Azul
+            gamaColoresPastel = ['#1d4ed8', '#3b82f6', '#60a5fa', '#93c5fd'];
+            badge.className = "badge bg-primary rounded-pill px-3 fs-6";
+            badge.innerText = "Viendo: Hombres ♂️";
+            thGenero.innerText = "Hombres (%)";
+            thGenero.style.color = "#60a5fa";
+        } else {
+            datosFiltrados = topico.mujeres;
+            colorPrincipal = '#db2777'; // Rosa
+            gamaColoresPastel = ['#be185d', '#ec4899', '#f472b6', '#fbcfe8'];
+            badge.className = "badge bg-danger rounded-pill px-3 fs-6";
+            badge.innerText = "Viendo: Mujeres ♀️";
+            thGenero.innerText = "Mujeres (%)";
+            thGenero.style.color = "#f472b6";
+        }
+
+        // 1. Actualizar Barras Separadas
+        chartBarras.data.labels = topico.etiquetas;
+        chartBarras.data.datasets = [{
+            label: generoSeleccionado === 'hombres' ? 'Porcentaje Hombres (%)' : 'Porcentaje Mujeres (%)',
+            data: datosFiltrados,
+            backgroundColor: colorPrincipal
+        }];
+        chartBarras.update();
+
+        // 2. Actualizar Pastel Separado
+        chartPastel.data.labels = topico.etiquetas;
+        chartPastel.data.datasets = [{
+            data: datosFiltrados,
+            backgroundColor: gamaColoresPastel
+        }];
+        chartPastel.update();
+
+        // 3. Actualizar Tabla Descriptiva Dinámica
+        const tablaCuerpo = document.getElementById('cuerpoTablaResultados');
+        tablaCuerpo.innerHTML = ''; 
+
+        topico.etiquetas.forEach((opcion, i) => {
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td class="text-start fw-semibold text-dark">${opcion}</td>
+                <td class="fw-bold fs-5" style="color: ${colorPrincipal};">${datosFiltrados[i]}%</td>
+            `;
+            tablaCuerpo.appendChild(fila);
+        });
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
